@@ -7,18 +7,24 @@ import re
 # Faz a requisição para o lookup
 def GetAdress(name):
     json_msg = {"type": "GET", "route": "Adress/", "name": name}
-    socket.send_json(json_msg)
-    msg = socket.recv_json()
+    lookup_socket.send_json(json_msg)
+    msg = lookup_socket.recv_json()
     print msg['code']
     del msg['code']
     return msg
 
 
+def AdressFromList(name):
+    for adress in adresses:
+        if adress['name'] == name:
+            return adress['Adress']
+
+
 # Basico do 0MQ
 context = zmq.Context()
-socket = context.socket(zmq.REQ)
+lookup_socket = context.socket(zmq.REQ)
 # Conectar ao lookup
-socket.connect("tcp://localhost:5555")
+lookup_socket.connect("tcp://localhost:5555")
 # Listas Usadas no programa
 adresses = []
 tasks_A = []
@@ -38,13 +44,30 @@ for line in file:
     first_char = line[0]
     if first_char == "A":
         tasks_A.append(int(line[2:]))
-        print("Task %s Registered in %s" % (line[2:].strip('\n'), first_char))
     elif first_char == "B":
         tasks_B.append(int(line[2:]))
-        print("Task %s Registered in %s" % (line[2:].strip('\n'), first_char))
 
-print(tasks_A)
-print(tasks_B)
+print("Tasks A: %s " % tasks_A)
+print("Tasks B: %s " % tasks_B)
+time.sleep(1)
+
+# Conecta no A, envia as tasks assim que o A estiver pronto para recebe-las
+A_socket = context.socket(zmq.REQ)
+A_socket.connect(AdressFromList("A"))
+json_msg = {"Tasks": tasks_A}
+A_socket.send_json(json_msg)
+A_msg = A_socket.recv_json()
+print A_msg['code']
+time.sleep(1)
+
+# Conecta no B, envia as tasks assim que o B estiver pronto para recebe-las
+B_socket = context.socket(zmq.REQ)
+B_socket.connect(AdressFromList("B"))
+json_msg = {"Tasks": tasks_B}
+B_socket.send_json(json_msg)
+B_msg = B_socket.recv_json()
+print B_msg['code']
+time.sleep(1)
 
 
 # push_context = zmq.Context()

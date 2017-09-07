@@ -5,6 +5,7 @@ import zmq
 context = zmq.Context()
 socket = context.socket(zmq.REP)
 socket.bind("tcp://*:5555")
+print("Start Lookup Succeed")
 adresses = []
 
 while True:
@@ -34,5 +35,3 @@ while True:
 
         socket.send_json(res)
         print("Adress of: %s. Sent!" % req['name'])
-
-    print(adresses)
